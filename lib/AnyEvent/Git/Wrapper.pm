@@ -8,6 +8,7 @@ use File::pushd;
 use AnyEvent;
 use AnyEvent::Open3::Simple;
 use Git::Wrapper::Exception;
+use Git::Wrapper::Statuses;
 
 # ABSTRACT: Wrap git command-line interface without blocking
 # VERSION
@@ -99,8 +100,91 @@ sub RUN
   $cv;
 }
 
-# sub log
-# sub status
+=head2 $git-E<gt>status
+
+=cut
+
+my %STATUS_CONFLICTS = map { $_ => 1 } qw<DD AU UD UA DU AA UU>;
+
+sub status
+{
+  my($self) = shift;
+  my $cv;
+  if(ref($_[-1]) eq 'CODE')
+  {
+    $cv = AE::cv;
+    $cv->cb(pop);
+  }
+  elsif(eval { $_[-1]->isa('AnyEvent::CondVar') })
+  {
+    $cv = pop;
+  }
+  else
+  {
+    return $self->SUPER::status(@_);
+  }
+
+  my $opt = ref $_[0] eq 'HASH' ? shift : {};
+  $opt->{porcelain} = 1;
+
+  $self->RUN('status' => $opt, @_, sub {
+    my $out = shift->recv;
+    my $stat = Git::Wrapper::Statuses->new;
+
+    for(@$out)
+    {
+      my ($x, $y, $from, $to) = $_ =~ /\A(.)(.) (.*?)(?: -> (.*))?\z/;
+      if ($STATUS_CONFLICTS{"$x$y"})
+      {
+        $stat->add('conflict', "$x$y", $from, $to);
+      }
+      elsif ($x eq '?' && $y eq '?')
+      {
+        $stat->add('unknown', '?', $from, $to);
+      }
+      else
+      {
+        $stat->add('changed', $y, $from, $to)
+          if $y ne ' ';
+        $stat->add('indexed', $x, $from, $to)
+          if $x ne ' ';
+      }
+    }
+    
+    $cv->send($stat);
+  });
+  
+  $cv;
+}
+
+=head2 $git-E<gt>log
+
+=cut
+
+sub log
+{
+  my($self) = shift;
+  my $cv;
+  if(ref($_[-1]) eq 'CODE')
+  {
+    $cv = AE::cv;
+    $cv->cb(pop);
+  }
+  elsif(eval { $_[-1]->isa('AnyEvent::CondVar') })
+  {
+    $cv = pop;
+  }
+  else
+  {
+    return $self->SUPER::log(@_);
+  }
+  
+  die "log nonblocking not supported";
+}
+
+=head2 $git-E<gt>version
+
+=cut
 
 sub version
 {

@@ -13,7 +13,7 @@ use Sort::Versions;
 use Test::Deep;
 use Test::Exception;
 
-my $global_timeout = AE::timer 30, 0, sub { say STDERR "TIMEOUT!"; exit 2 };
+#my $global_timeout = AE::timer 30, 0, sub { say STDERR "TIMEOUT!"; exit 2 };
 
 my $dir = tempdir(CLEANUP => 1);
 
@@ -64,9 +64,7 @@ $git->ls_files(sub {
 
 SKIP: {
   skip 'testing old git without porcelain' , 1 unless $git->supports_status_porcelain;
-
-  # TODO: nb version of status
-  is( $git->status->is_dirty , 1 , 'repo is dirty' );
+  is( $git->status(AE::cv)->recv->is_dirty , 1 , 'repo is dirty' );
 }
 
 my $time = time;
@@ -74,9 +72,7 @@ $git->commit({ message => "FIRST\n\n\tBODY\n" }, AE::cv)->recv;
 
 SKIP: {
   skip 'testing old git without porcelain' , 1 unless $git->supports_status_porcelain;
-
-  # TODO: nb version of status
-  is( $git->status->is_dirty , 0 , 'repo is clean' );
+  is( $git->status(AE::cv)->recv->is_dirty , 0 , 'repo is clean' );
 }
 
 
