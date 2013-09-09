@@ -19,8 +19,8 @@ my $dir = tempdir(CLEANUP => 1);
 
 my $git = AnyEvent::Git::Wrapper->new($dir);
 
-my $version = $git->version;
-if ( versioncmp( $git->version , '1.5.0') eq -1 ) {
+my $version = $git->version(AE::cv)->recv;
+if ( versioncmp( $git->version(AE::cv)->recv , '1.5.0') eq -1 ) {
   plan skip_all =>
     "Git prior to v1.5.0 doesn't support 'config' subcmd which we need for this test."
 }
