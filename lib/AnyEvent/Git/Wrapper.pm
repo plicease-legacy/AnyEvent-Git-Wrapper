@@ -46,6 +46,7 @@ sub RUN
     on_start  => sub {
       my($proc) = @_;
       $proc->print($in) if defined $in;
+      $proc->close;
     },
     on_stdout => \@out,
     on_stderr => \@err,

@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-use Test::More;
+use Test::More tests => 23;
 
 use File::Temp qw(tempdir);
 use IO::File;
@@ -13,7 +13,7 @@ use Sort::Versions;
 use Test::Deep;
 use Test::Exception;
 
-# FIXME: add a timeout
+my $global_timeout = AE::timer 30, 0, sub { say STDERR "TIMEOUT!"; exit 2 };
 
 my $dir = tempdir(CLEANUP => 1);
 
@@ -142,23 +142,6 @@ SKIP:
 my @raw_log = $git->log({ raw => 1 });
 is(@raw_log, 1, 'one raw log entry');
 
-sub _timeout (&) {
-    my ($code) = @_;
-
-    my $timeout = 0;
-    eval {
-        local $SIG{ALRM} = sub { $timeout = 1; die "TIMEOUT\n" };
-        # 5 seconds should be more than enough time to fail properly
-        alarm 5;
-        $code->();
-        alarm 0;
-    };
-
-    return $timeout;
-}
-
-# TODO: nb-ify the rest of this test
-
 SKIP: {
     if ( versioncmp( $git->version , '1.7.0.5') eq -1 ) {
       skip 'testing old git without commit --allow-empty-message support' , 1;
@@ -166,22 +149,29 @@ SKIP: {
 
     # Test empty commit message
     IO::File->new(">" . File::Spec->catfile($dir, qw(second_commit)))->print("second_commit\n");
-    $git->add('second_commit');
+    $git->add('second_commit', AE::cv)->recv;
 
-    # If this fails there's a distinct danger it will hang indefinitely
-    my $timeout = _timeout { $git->commit };
-    ok !$timeout && $@, 'Attempt to commit interactively fails quickly'
-        or diag "Timed out!";
-
-    $timeout = _timeout {
-      $git->commit({ message => "", 'allow-empty-message' => 1 });
+    do {
+      my $cv = AE::cv;
+      my $w = AE::timer 5, 0, sub { $cv->send(0) };
+      $git->commit(sub { $cv->send(1)});
+      ok $cv->recv, 'Attempt to commit interactively fails quickly';
+    };
+    
+    my $error;
+    my $timeout = do {
+      my $cv = AE::cv;
+      my $w = AE::timer 5, 0, sub { $cv->send(1) };
+      $git->commit({ message => "", 'allow-empty-message' => 1 }, sub { $error = $@ unless eval { shift->recv }; $cv->send(0) });
+      $cv->recv;
     };
 
-    if ( $@ && !$timeout ) {
-      my $msg = substr($@,0,50);
+    if ( $error && !$timeout ) {
+      my $msg = substr($error,0,50);
       skip $msg, 1;
     }
 
+    # TODO: nb version of log
     @log = $git->log();
     is(@log, 2, 'two log entries, one with empty commit message');
 };
@@ -201,31 +191,37 @@ for my $arg_test (@arg_tests) {
     my ($flag, $msg, $descr) = @$arg_test;
 
     $arg_file->print("$msg\n");
-    $git->add('argument_testfile');
-    $git->commit({ $flag => $msg });
+    $git->add('argument_testfile', AE::cv)->recv;
+    $git->commit({ $flag => $msg }, AE::cv)->recv;
 
+    # TODO: nb version of log
     my ($arg_log) = $git->log('-n 1');
 
     is $arg_log->message, "$msg\n", "argument test: $descr";
 }
 
-$git->checkout({b => 'new_branch'});
+$git->checkout({b => 'new_branch'}, AE::cv)->recv;
 
-my ($new_branch) = grep {m/^\*/} $git->branch;
-$new_branch =~ s/^\*\s+|\s+$//g;
+$git->branch(sub {
+  my $out = shift->recv;
+  my ($new_branch) = grep {m/^\*/} @$out;
+  $new_branch =~ s/^\*\s+|\s+$//g;
+  is $new_branch, 'new_branch', 'new branch name is correct';
+})->recv;
 
-is $new_branch, 'new_branch', 'new branch name is correct';
 
 SKIP: {
   skip 'testing old git without no-filters' , 1 unless $git->supports_hash_object_filters;
 
-  my ($hash) = $git->hash_object({
+  my $cv = $git->hash_object({
     no_filters => 1,
     stdin      => 1,
     -STDIN     => 'content to hash',
-  });
+  }, AE::cv);
+
+  my $out = $cv->recv;
+  my $hash = $out->[0];
   is $hash, '4b06c1f876b16951b37f4d6755010f901100f04e',
     'passing content with -STDIN option';
 }
 
-done_testing();
