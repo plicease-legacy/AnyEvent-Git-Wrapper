@@ -101,6 +101,40 @@ sub RUN
 
 # sub log
 # sub status
-# sub version
+
+sub version
+{
+  my($self) = @_;
+  my $cv;
+  if(ref($_[-1]) eq 'CODE')
+  {
+    $cv = AE::cv;
+    $cv->cb(pop);
+  }
+  elsif(eval { $_[-1]->isa('AnyEvent::CondVar') })
+  {
+    $cv = pop;
+  }
+  else
+  {
+    return $self->SUPER::version(@_);
+  }
+  
+  $self->RUN('version', sub {
+    my $out = eval { shift->recv };
+    if($@)
+    {
+      $cv->croak($@);
+    }
+    else
+    {
+      my $version = $out->[0];
+      $version =~ s/^git version //;
+      $cv->send($version);
+    }
+  });
+  
+  $cv;
+}
 
 1;
