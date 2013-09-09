@@ -1,5 +1,6 @@
 use strict;
 use warnings;
+BEGIN { eval q{ use EV } }
 use Test::More tests => 23;
 
 use File::Temp qw(tempdir);

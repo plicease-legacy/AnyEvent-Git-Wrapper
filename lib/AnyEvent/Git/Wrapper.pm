@@ -14,9 +14,84 @@ use Git::Wrapper::Log;
 # ABSTRACT: Wrap git command-line interface without blocking
 # VERSION
 
+=head1 SYNOPSIS
+
+ use AnyEvent::Git::Wrapper;
+ 
+ # add all files and make a commit...
+ my $git = AnyEvent::Git::Wrapper->new($dir);
+ $git->add('.', sub {
+   $git->commit({ message => 'initial commit' }, sub {
+     say "made initial commit";
+   });
+ });
+
+=head1 DESCRIPTION
+
+This module provides a non-blocking and blocking API for git in the style and using the data 
+structures of L<Git::Wrapper>.  For methods that execute the git binary, if the last argument is 
+either a code reference or an L<AnyEvent> condition variable, then the command is run in 
+non-blocking mode and the result will be sent to the condition variable when the command completes.  
+For most commands (all those but C<status>, C<log> and C<version>), the result comes back via the 
+C<recv> method on the condition variable as two array references, one representing the standard out 
+and the other being the standard error.  Because C<recv> will return just the first value if 
+called in scalar context, you can retrieve just the output by calling C<recv> in scalar context.
+
+ # ignoring stderr
+ $git->branch(sub {
+   my $out = shift->recv;
+   foreach my $line (@$out)
+   {
+     ...
+   }
+ });
+ 
+ # same thing, but saving stderr
+ $git->branch(sub {
+   my($out, $err) = shit->recv;
+   foreach my $line(@$out)
+   {
+     ...
+   }
+ });
+
+Like L<Git::Wrapper>, you can also access the standard output and error via the C<OUT> and C<ERR>, but care
+needs to be taken that you either save the values immediately if other commands are being run at the same
+time.
+
+ $git->branch(sub {
+   my $out = $git->OUT;
+   foreach my $line (@$out)
+   {
+     ...
+   }
+ });
+
+If git signals an error condition the condition variable will croak, so you will need to wrap your call
+to C<recv> in an eval if you want to handle it:
+
+ $git->branch(sub {
+   my $out = eval { shift->recv };
+   if($@)
+   {
+     warn "error: $@";
+     return;
+   }
+   ...
+ });
+
 =head1 METHODS
 
-=head2 $git-E<gt>RUN($command, [ @arguments ])
+=head2 $git-E<gt>RUN($command, [ @arguments ], [ $callback | $condvar ])
+
+Run the given git command with the given arguments (see L<Git::Wrapper>).  If the last argument is
+either a code reference or a condition variable then the command will be run in non-blocking mode
+and a condition variable will be returned immediately.  Otherwise the command will be run in 
+normal blocking mode, exactly like L<Git::Wrapper>.
+
+If you provide this method with a condition variable it will use that to send the results of the
+command.  If you provide a code reference it will create its own condition variable and attach
+the code reference  to its callback.  Either way it will return the condition variable.
 
 =cut
 
@@ -101,7 +176,24 @@ sub RUN
   $cv;
 }
 
-=head2 $git-E<gt>status
+=head2 $git-E<gt>status( [@args ], [ $coderef | $condvar ] )
+
+If called in blocking mode (without a code reference or condition variable as the last argument),
+this method works exactly as with L<Git::Wrapper>.  If run in non blocking mode, the Git::Wrapper::Statuses
+object will be passed back via the C<recv> method on the condition variable.
+
+ # with a code ref
+ $git->status(sub {
+   my $statuses = shift->recv;
+   ...
+ });
+ 
+ # with a condition variable
+ my $cv = $git->status(AE::cv)
+ $cv->cb(sub {
+   my $statuses = shift->recv;
+   ...   
+ });
 
 =cut
 
@@ -158,7 +250,20 @@ sub status
   $cv;
 }
 
-=head2 $git-E<gt>log
+=head2 $git-E<gt>log( [ @args ], [ $callback | $condvar )
+
+In blocking mode works just like L<Git::Wrapper>.  With a code reference or condition variable it runs in
+blocking mode and the list of L<Git::Wrapper::Log> objects is returned via the condition variable.
+
+ # to get the whole log:
+ $git->log(sub {
+   my @logs = shift->recv;
+ });
+ 
+ # to get just the first line:
+ $git->log('-1', sub {
+   my $log = shift->recv;
+ });
 
 =cut
 
@@ -246,7 +351,23 @@ sub log
   $cv;
 }
 
-=head2 $git-E<gt>version
+=head2 $git-E<gt>version( [ $callback | $condvar ] )
+
+In blocking mode works just like L<Git::Wrapper>.  With a code reference or condition variable it runs in
+blocking mode and the version is returned via the condition variable.
+
+ # cod ref
+ $git->version(sub {
+   my $version = shift->recv;
+   ...
+ });
+ 
+ # cond var
+ my $cv = $git->version(AE::cv);
+ $cv->cb(sub {
+   my $version = shift->recv;
+   ...
+ });
 
 =cut
 
@@ -284,5 +405,26 @@ sub version
   
   $cv;
 }
+
+=head1 CAVEATS
+
+This module necessarily uses the private _parse_args method from L<Git::Wrapper>, so changes
+to that module may break this one.  Also, some functionality is duplicated because there
+isn't a good way to hook into just parts of the commands that this module overrides.  The
+author has made a good faith attempt to reduce the amount of duplication.
+
+=head1 BUNDLED FILES
+
+In addition to inheriting from L<Git::Wrapper>, this distribution includes tests that come
+with L<Git::Wrapper>, and are covered by this copyright:
+
+This software is copyright (c) 2008 by Hand Dieter Pearcey.
+
+This is free software you can redistribute it and/or modify it under the same terms as the Perl 5
+programming language system itself.
+
+Thanks also to Chris Prather and John SJ Anderson for their work on L<Git::Wrapper>.
+
+=cut
 
 1;
