@@ -85,9 +85,8 @@ $git->rev_list({ all => 1, pretty => 'oneline' }, sub {
   like($rev_list[0], qr/^[a-f\d]{40} FIRST$/);
 })->recv;
 
-# TODO: nb version of log
 my $args = $git->supports_log_raw_dates ? { date => 'raw' } : {};
-my @log = $git->log( $args );
+my @log = $git->log( $args , AE::cv)->recv;
 is(@log, 1, 'one log entry');
 
 my $log = $log[0];
@@ -110,8 +109,7 @@ SKIP:
 
   $git->config( 'log.abbrevCommit', 'true' , AE::cv)->recv;
 
-  # TODO: nb version of log
-  @log = $git->log( $args );
+  @log = $git->log( $args , AE::cv)->recv;
 
   $log = $log[0];
   is($log->id, (split /\s/, $rev_list[0])[0], 'id');
@@ -123,8 +121,7 @@ SKIP:
     skip 'testing old git without log --oneline support' , 3;
   }
 
-  # TODO: nb version of log
-  throws_ok { $git->log('--oneline') } qr/^unhandled/ , 'log(--oneline) dies';
+  throws_ok { $git->log('--oneline', AE::cv)->recv } qr/^unhandled/ , 'log(--oneline) dies';
 
   $git->RUN('log', '--oneline', sub {
     my($out, $err) = shift->recv;
@@ -134,8 +131,7 @@ SKIP:
   });
 }
 
-# TODO: nb version of log
-my @raw_log = $git->log({ raw => 1 });
+my @raw_log = $git->log({ raw => 1 }, AE::cv)->recv;
 is(@raw_log, 1, 'one raw log entry');
 
 SKIP: {
@@ -167,8 +163,7 @@ SKIP: {
       skip $msg, 1;
     }
 
-    # TODO: nb version of log
-    @log = $git->log();
+    @log = $git->log(AE::cv)->recv;
     is(@log, 2, 'two log entries, one with empty commit message');
 };
 
@@ -190,8 +185,7 @@ for my $arg_test (@arg_tests) {
     $git->add('argument_testfile', AE::cv)->recv;
     $git->commit({ $flag => $msg }, AE::cv)->recv;
 
-    # TODO: nb version of log
-    my ($arg_log) = $git->log('-n 1');
+    my ($arg_log) = $git->log('-n 1', AE::cv)->recv;
 
     is $arg_log->message, "$msg\n", "argument test: $descr";
 }

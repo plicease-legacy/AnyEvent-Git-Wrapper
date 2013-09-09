@@ -9,6 +9,7 @@ use AnyEvent;
 use AnyEvent::Open3::Simple;
 use Git::Wrapper::Exception;
 use Git::Wrapper::Statuses;
+use Git::Wrapper::Log;
 
 # ABSTRACT: Wrap git command-line interface without blocking
 # VERSION
@@ -179,7 +180,70 @@ sub log
     return $self->SUPER::log(@_);
   }
   
-  die "log nonblocking not supported";
+  my $opt = ref $_[0] eq 'HASH' ? shift : {};
+  $opt->{no_color}         = 1;
+  $opt->{pretty}           = 'medium';
+  $opt->{no_abbrev_commit} = 1
+    if $self->supports_log_no_abbrev_commit;
+  
+  my $raw = defined $opt->{raw} && $opt->{raw};
+  
+  $self->RUN(log => $opt, @_, sub {
+    my $out = shift->recv;
+    
+    my @logs;
+    while(my $line = shift @$out) {
+      unless($line =~ /^commit (\S+)/)
+      {
+        $cv->croak("unhandled: $line");
+        return;
+      }
+      
+      my $current = Git::Wrapper::Log->new($1);
+      
+      $line = shift @$out;  # next line
+      
+      while($line =~ /^(\S+):\s+(.+)$/)
+      {
+        $current->attr->{lc $1} = $2;
+        $line = shift @$out; # next line
+      }
+      
+      if($line)
+      {
+        $cv->croak("no blank line separating head from message");
+        return;
+      }
+      
+      my($initial_indent) = $out->[0] =~ /^(\s*)/ if @$out;
+      
+      my $message = '';
+      while(@$out and $out->[0] !~ /^commit (\S+)/ and length($line = shift @$out))
+      {
+        $line =~ s/^$initial_indent//; # strip just the indenting added by git
+        $message .= "$line\n";
+      }
+      
+      $current->message($message);
+      
+      if($raw)
+      {
+        my @modifications;
+        while(@$out and $out->[0] =~ m/^\:(\d{6}) (\d{6}) (\w{7})\.\.\. (\w{7})\.\.\. (\w{1})\t(.*)$/)
+        {
+          push @modifications, Git::Wrapper::File::RawModification->new($6,$5,$1,$2,$3,$4);
+          shift @$out;
+        }
+        $current->modifications(@modifications) if @modifications;
+      }
+      
+      push @logs, $current;
+    }
+    
+    $cv->send(@logs);
+  });
+  
+  $cv;
 }
 
 =head2 $git-E<gt>version
