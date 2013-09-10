@@ -30,22 +30,12 @@ if ( versioncmp( $git->version(AE::cv)->recv , '1.5.0') eq -1 ) {
 
 $git->init(AE::cv)->recv; # 'git init' also added in v1.5.0 so we're safe
 
-do {
-  my $cv = AE::cv;
-  
-  $cv->begin;
-  $git->config( 'user.name'  , 'Test User'        , sub { $cv->end });
-  $cv->begin;
-  $git->config( 'user.email' , 'test@example.com' , sub { $cv->end });
+$git->config( 'user.name'  , 'Test User'        , AE::cv)->recv;
+$git->config( 'user.email' , 'test@example.com' , AE::cv)->recv;
 
-  # make sure git isn't munging our content so we have consistent hashes
-  $cv->begin;
-  $git->config( 'core.autocrlf' , 'false' , sub { $cv->end });
-  $cv->begin;
-  $git->config( 'core.safecrlf' , 'false' , sub { $cv->end });
-  
-  $cv->recv;
-};
+# make sure git isn't munging our content so we have consistent hashes
+$git->config( 'core.autocrlf' , 'false' , AE::cv)->recv;
+$git->config( 'core.safecrlf' , 'false' , AE::cv)->recv;
 
 mkpath(File::Spec->catfile($dir, 'foo'));
 
