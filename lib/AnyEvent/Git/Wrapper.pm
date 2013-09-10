@@ -413,6 +413,10 @@ to that module may break this one.  Also, some functionality is duplicated becau
 isn't a good way to hook into just parts of the commands that this module overrides.  The
 author has made a good faith attempt to reduce the amount of duplication.
 
+You probably don't want to be doing multiple git write operations at once (strange things are
+likely to happen), but you may want to do multiple git read operations or mix git and other
+L<AnyEvent> operations at once.
+
 =head1 BUNDLED FILES
 
 In addition to inheriting from L<Git::Wrapper>, this distribution includes tests that come
