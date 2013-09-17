@@ -11,6 +11,7 @@ do {
   my $new;
   $old = \&AnyEvent::Git::Wrapper::RUN;
   $new = sub { $count++; goto $old; };
+  no warnings 'redefine';
   *AnyEvent::Git::Wrapper::RUN = $new;
 };
 
