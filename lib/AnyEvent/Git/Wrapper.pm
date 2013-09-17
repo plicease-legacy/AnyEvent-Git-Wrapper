@@ -115,16 +115,12 @@ sub RUN
 
   my $cmd = shift;
 
-  my $in;  
+  my ($parts, $in) = Git::Wrapper::_parse_args( $cmd, @_ );
   my @out;
   my @err;
   
   my $ipc = AnyEvent::Open3::Simple->new(
-    on_start  => sub {
-      my($proc) = @_;
-      $proc->print($in) if defined $in;
-      $proc->close;
-    },
+    stdin => $in,
     on_stdout => \@out,
     on_stderr => \@err,
     on_error  => sub {
@@ -165,8 +161,6 @@ sub RUN
   do {
     my $d = pushd $self->dir unless $cmd eq 'clone';
     
-    my $parts;
-    ($parts, $in) = Git::Wrapper::_parse_args( $cmd, @_ );
     my @cmd = ( $self->git, @$parts );
     
     local $ENV{GIT_EDITOR} = '';

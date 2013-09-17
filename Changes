@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+  - support for MSWin32
 
 0.01      2013-09-09 13:04:44 -0400
   - initial version
