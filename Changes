@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.02      2013-09-17 12:46:57 -0400
   - support for MSWin32
 
 0.01      2013-09-09 13:04:44 -0400
