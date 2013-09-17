@@ -68,6 +68,20 @@ to `recv` in an eval if you want to handle it:
       ...
     });
 
+# CONSTRUCTOR
+
+## AnyEvent::Git::Wrapper->new
+
+The constructor takes all the same arguments as [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper), in addition to 
+these options:
+
+- cache\_version
+
+    The first time the `version` command is executed the value will be cached so
+    that `git version` doesn't need to be executed again (via the `version` method
+    only, this doesn't include if you call `git version` using the `RUN` method).
+    The default is false (no cache).
+
 # METHODS
 
 ## $git->RUN($command, \[ @arguments \], \[ $callback | $condvar \])

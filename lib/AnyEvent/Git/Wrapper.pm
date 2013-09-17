@@ -10,6 +10,7 @@ use AnyEvent::Open3::Simple;
 use Git::Wrapper::Exception;
 use Git::Wrapper::Statuses;
 use Git::Wrapper::Log;
+use Scalar::Util qw( blessed );
 
 # ABSTRACT: Wrap git command-line interface without blocking
 # VERSION
@@ -79,6 +80,51 @@ to C<recv> in an eval if you want to handle it:
    }
    ...
  });
+
+=head1 CONSTRUCTOR
+
+=head2 AnyEvent::Git::Wrapper->new
+
+The constructor takes all the same arguments as L<Git::Wrapper>, in addition to 
+these options:
+
+=over 4
+
+=item cache_version
+
+The first time the C<version> command is executed the value will be cached so
+that C<git version> doesn't need to be executed again (via the C<version> method
+only, this doesn't include if you call C<git version> using the C<RUN> method).
+The default is false (no cache).
+
+=back
+
+=cut
+
+sub new
+{
+  my $class = shift;
+  
+  my $args;
+  if(scalar @_ == 1)
+  {
+    my $arg = shift;
+    if(ref $arg eq 'HASH') { $args = $arg }
+    elsif(blessed $arg)    { $args = { dir => "$arg" } }
+    elsif(! ref $arg)      { $args = { dir => $arg } }
+    else { die "Singlearg must be hashref, scalar or stringify-able object" }
+  }
+  else
+  {
+    my($dir, %opts) = @_;
+    $dir = "$dir" if blessed $dir;
+    $args = { dir => $dir, %opts };
+  }
+  my $cache_version = delete $args->{cache_version};
+  my $self = $class->SUPER::new($args);
+  $self->{ae_cache_version} = $cache_version;
+  $self;
+}
 
 =head1 METHODS
 
@@ -380,22 +426,32 @@ sub version
   }
   else
   {
-    return $self->SUPER::version(@_);
+    if($self->{ae_cache_version} && $self->{ae_version})
+    { return $self->{ae_version} }
+    $self->{ae_version} = $self->SUPER::version(@_);
+    return $self->{ae_version};
   }
   
-  $self->RUN('version', sub {
-    my $out = eval { shift->recv };
-    if($@)
-    {
-      $cv->croak($@);
-    }
-    else
-    {
-      my $version = $out->[0];
-      $version =~ s/^git version //;
-      $cv->send($version);
-    }
-  });
+  if($self->{ae_cache_version} && $self->{ae_version})
+  {
+    $cv->send($self->{ae_version});
+  }
+  else
+  {
+    $self->RUN('version', sub {
+      my $out = eval { shift->recv };
+      if($@)
+      {
+        $cv->croak($@);
+      }
+      else
+      {
+        $self->{ae_version} = $out->[0];
+        $self->{ae_version} =~ s/^git version //;
+        $cv->send($self->{ae_version});
+      }
+    });
+  }
   
   $cv;
 }
