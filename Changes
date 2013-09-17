@@ -2,6 +2,9 @@ Revision history for {{$dist->name}}
 
 {{$NEXT}}
 
+0.03      2013-09-17 12:49:09 -0400
+  - fix Git::Wrapper prereq
+
 0.02      2013-09-17 12:46:57 -0400
   - support for MSWin32
 
