@@ -325,6 +325,12 @@ sub log
     return $self->SUPER::log(@_);
   }
   
+  my $cb;
+  if(ref($_[-1]) eq 'CODE')
+  {
+    $cb = pop;
+  }
+
   my $opt = ref $_[0] eq 'HASH' ? shift : {};
   $opt->{no_color}         = 1;
   $opt->{pretty}           = 'medium';
@@ -382,7 +388,10 @@ sub log
         $current->modifications(@modifications) if @modifications;
       }
       
-      push @logs, $current;
+      if($cb)
+      { $cb->($current) }
+      else
+      { push @logs, $current }
     }
     
     $cv->send(@logs);
