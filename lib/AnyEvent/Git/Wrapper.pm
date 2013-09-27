@@ -161,10 +161,13 @@ sub RUN
 
   my $cmd = shift;
 
+  my $customize;
+  $customize = pop if ref($_[-1]) eq 'CODE';
+  
   my ($parts, $in) = Git::Wrapper::_parse_args( $cmd, @_ );
   my @out;
   my @err;
-  
+
   my $ipc = AnyEvent::Open3::Simple->new(
     stdin => $in,
     on_stdout => \@out,
@@ -202,6 +205,7 @@ sub RUN
         $cv->send(\@out, \@err);
       }
     },
+    $customize ? $customize->() : ()
   );
   
   do {
@@ -338,9 +342,11 @@ sub log
     if $self->supports_log_no_abbrev_commit;
   
   my $raw = defined $opt->{raw} && $opt->{raw};
-  
-  $self->RUN(log => $opt, @_, sub {
-    my $out = shift->recv;
+
+  my $out = [];  
+  $self->RUN(log => $opt, @_, sub { on_stdout => sub { push @$out, pop } }, sub {
+    eval { shift->recv };
+    $cv->croak($@) if $@;
     
     my @logs;
     while(my $line = shift @$out) {
