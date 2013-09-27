@@ -343,13 +343,12 @@ sub log
   
   my $raw = defined $opt->{raw} && $opt->{raw};
 
-  my $out = [];  
-  $self->RUN(log => $opt, @_, sub { on_stdout => sub { push @$out, pop } }, sub {
-    eval { shift->recv };
-    $cv->croak($@) if $@;
-    
-    my @logs;
-    while(my $line = shift @$out) {
+  my $out = [];
+  my @logs;
+  
+  my $process_commit = sub {
+    if(my $line = shift @$out)
+    {
       unless($line =~ /^commit (\S+)/)
       {
         $cv->croak("unhandled: $line");
@@ -398,6 +397,21 @@ sub log
       { $cb->($current) }
       else
       { push @logs, $current }
+    }
+  };
+  
+  my $on_stdout = sub {
+    my $line = pop;
+    push @$out, $line;
+    $process_commit->() if $line =~ /^commit (\S+)/ && @$out > 1;
+  };
+  
+  $self->RUN(log => $opt, @_, sub { on_stdout => $on_stdout }, sub {
+    eval { shift->recv };
+    $cv->croak($@) if $@;
+    
+    while($out->[0]) {
+      $process_commit->();
     }
     
     $cv->send(@logs);
