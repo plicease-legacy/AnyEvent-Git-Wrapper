@@ -83,7 +83,9 @@ to C<recv> in an eval if you want to handle it:
 
 =head1 CONSTRUCTOR
 
-=head2 AnyEvent::Git::Wrapper->new
+=head2 new
+
+ my $git = AnyEvent::Git::Wrapper->new('.');
 
 The constructor takes all the same arguments as L<Git::Wrapper>, in addition to 
 these options:

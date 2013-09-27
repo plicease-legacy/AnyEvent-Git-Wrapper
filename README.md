@@ -70,7 +70,9 @@ to `recv` in an eval if you want to handle it:
 
 # CONSTRUCTOR
 
-## AnyEvent::Git::Wrapper->new
+## new
+
+    my $git = AnyEvent::Git::Wrapper->new('.');
 
 The constructor takes all the same arguments as [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper), in addition to 
 these options:
