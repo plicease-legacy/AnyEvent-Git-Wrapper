@@ -84,7 +84,7 @@ these options:
 
 # METHODS
 
-## $git->RUN($command, \[ @arguments \], \[ $callback | $condvar \])
+## RUN
 
 Run the given git command with the given arguments (see [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper)).  If the last argument is
 either a code reference or a condition variable then the command will be run in non-blocking mode
@@ -95,14 +95,35 @@ If you provide this method with a condition variable it will use that to send th
 command.  If you provide a code reference it will create its own condition variable and attach
 the code reference  to its callback.  Either way it will return the condition variable.
 
-## $git->status( \[@args \], \[ $coderef | $condvar \] )
+    # blocking
+    $git->RUN($command, @arguments);
+    
+    # non-blocking callback
+    $git->RUN($command, @arguments, sub {
+      # $out is a list ref of stdout
+      # $err is a list ref of stderr
+      my($out, $err) = shift->recv;
+    });
+    
+    # non-blocking cv
+    my $cv = $git->RUN($command, @arguments, AE::cv);
+    $cv->cb(sub {
+      my($out, $err) = shift->recv;
+    });
+
+## status
 
 If called in blocking mode (without a code reference or condition variable as the last argument),
-this method works exactly as with [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper).  If run in non blocking mode, the Git::Wrapper::Statuses
+this method works exactly as with [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper).  If run in non blocking mode, the [Git::Wrapper::Statuses](http://search.cpan.org/perldoc?Git::Wrapper::Statuses)
 object will be passed back via the `recv` method on the condition variable.
+
+    # blocking
+    # $statuses isa Git::Wrapper::Statuses
+    my $statuses = $git->status;
 
     # with a code ref
     $git->status(sub {
+      # $statuses isa Git::Wrapper::Statuses 
       my $statuses = shift->recv;
       ...
     });
@@ -110,11 +131,12 @@ object will be passed back via the `recv` method on the condition variable.
     # with a condition variable
     my $cv = $git->status(AE::cv)
     $cv->cb(sub {
+      # $statuses isa Git::Wrapper::Statuses
       my $statuses = shift->recv;
       ...   
     });
 
-## $git->log( \[ @args \], \[ \[ $commit\_callback\], \[ $callback | $condvar )
+## log
 
 This method has three different calling modes, blocking, non-blocking as commits arrive and non-blocking
 processed at completion.
@@ -178,10 +200,13 @@ this:
 
     my $cv = $git->log(@args, AE::cv);
 
-## $git->version( \[ $callback | $condvar \] )
+## version
 
 In blocking mode works just like [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper).  With a code reference or condition variable it runs in
 blocking mode and the version is returned via the condition variable.
+
+    # blocking
+    my $version = $git->version;
 
     # cod ref
     $git->version(sub {
