@@ -1,36 +1,36 @@
 use strict;
 use warnings;
 use Test::More tests => 1;
-
 BEGIN { eval q{ use EV } }
-
-my @modules = sort qw(
-  AnyEvent
-  Git::Wrapper
-  AnyEvent::Open3::Simple
-  EV
-  File::pushd
-  Scalar::Util
-  Sort::Version
-  Test::Deep
-  Test::Exception
-);
+eval q{ 
+  use FindBin ();
+  use File::Spec;
+  1;
+} || die $@;
 
 pass 'okay';
 
-diag '';
-diag '';
-diag '';
-
-diag sprintf "%-25s %s", 'perl', $^V;
-
-diag sprintf "%-25s %s", 'git', do {
-  my($version) = eval {
-    require AnyEvent::Git::Wrapper;
-    AnyEvent::Git::Wrapper->new('.')->version;
-  };
-  defined $version ? $version : '';
+my @modules;
+do {
+  my $fh;
+  open($fh, '<', File::Spec->catfile($FindBin::Bin, '00_diag.txt'));
+  @modules = <$fh>;
+  close $fh;
+  chomp @modules;
 };
+
+my $max = 1;
+$max = $_ > $max ? $_ : $max for map { length $_ } @modules;
+our $format = "%-${max}s %s"; 
+
+diag '';
+diag '';
+diag '';
+
+diag sprintf $format, 'perl ', $^V;
+
+require(File::Spec->catfile($FindBin::Bin, '00_diag.pl'))
+  if -e File::Spec->catfile($FindBin::Bin, '00_diag.pl');
 
 foreach my $module (@modules)
 {
@@ -38,15 +38,14 @@ foreach my $module (@modules)
   {
     my $ver = eval qq{ \$$module\::VERSION };
     $ver = 'undef' unless defined $ver;
-    diag sprintf "%-25s %s", $module, $ver;
+    diag sprintf $format, $module, $ver;
   }
   else
   {
-    diag sprintf "%-25s none", $module;
+    diag sprintf $format, $module, '-';
   }
 }
 
 diag '';
 diag '';
 diag '';
-
