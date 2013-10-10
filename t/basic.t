@@ -22,8 +22,6 @@ if ( versioncmp( $git->version , '1.5.0') eq -1 ) {
     "Git prior to v1.5.0 doesn't support 'config' subcmd which we need for this test."
 }
 
-diag( "Testing git version: " . $version );
-
 $git->init; # 'git init' also added in v1.5.0 so we're safe
 
 $git->config( 'user.name'  , 'Test User'        );

@@ -83,7 +83,9 @@ to C<recv> in an eval if you want to handle it:
 
 =head1 CONSTRUCTOR
 
-=head2 AnyEvent::Git::Wrapper->new
+=head2 new
+
+ my $git = AnyEvent::Git::Wrapper->new('.');
 
 The constructor takes all the same arguments as L<Git::Wrapper>, in addition to 
 these options:
@@ -128,7 +130,7 @@ sub new
 
 =head1 METHODS
 
-=head2 $git-E<gt>RUN($command, [ @arguments ], [ $callback | $condvar ])
+=head2 RUN
 
 Run the given git command with the given arguments (see L<Git::Wrapper>).  If the last argument is
 either a code reference or a condition variable then the command will be run in non-blocking mode
@@ -138,6 +140,22 @@ normal blocking mode, exactly like L<Git::Wrapper>.
 If you provide this method with a condition variable it will use that to send the results of the
 command.  If you provide a code reference it will create its own condition variable and attach
 the code reference  to its callback.  Either way it will return the condition variable.
+
+ # blocking
+ $git->RUN($command, @arguments);
+ 
+ # non-blocking callback
+ $git->RUN($command, @arguments, sub {
+   # $out is a list ref of stdout
+   # $err is a list ref of stderr
+   my($out, $err) = shift->recv;
+ });
+ 
+ # non-blocking cv
+ my $cv = $git->RUN($command, @arguments, AE::cv);
+ $cv->cb(sub {
+   my($out, $err) = shift->recv;
+ });
 
 =cut
 
@@ -161,10 +179,13 @@ sub RUN
 
   my $cmd = shift;
 
+  my $customize;
+  $customize = pop if ref($_[-1]) eq 'CODE';
+  
   my ($parts, $in) = Git::Wrapper::_parse_args( $cmd, @_ );
   my @out;
   my @err;
-  
+
   my $ipc = AnyEvent::Open3::Simple->new(
     stdin => $in,
     on_stdout => \@out,
@@ -202,6 +223,7 @@ sub RUN
         $cv->send(\@out, \@err);
       }
     },
+    $customize ? $customize->() : ()
   );
   
   do {
@@ -216,14 +238,19 @@ sub RUN
   $cv;
 }
 
-=head2 $git-E<gt>status( [@args ], [ $coderef | $condvar ] )
+=head2 status
 
 If called in blocking mode (without a code reference or condition variable as the last argument),
-this method works exactly as with L<Git::Wrapper>.  If run in non blocking mode, the Git::Wrapper::Statuses
+this method works exactly as with L<Git::Wrapper>.  If run in non blocking mode, the L<Git::Wrapper::Statuses>
 object will be passed back via the C<recv> method on the condition variable.
+
+ # blocking
+ # $statuses isa Git::Wrapper::Statuses
+ my $statuses = $git->status;
 
  # with a code ref
  $git->status(sub {
+   # $statuses isa Git::Wrapper::Statuses 
    my $statuses = shift->recv;
    ...
  });
@@ -231,6 +258,7 @@ object will be passed back via the C<recv> method on the condition variable.
  # with a condition variable
  my $cv = $git->status(AE::cv)
  $cv->cb(sub {
+   # $statuses isa Git::Wrapper::Statuses
    my $statuses = shift->recv;
    ...   
  });
@@ -290,20 +318,73 @@ sub status
   $cv;
 }
 
-=head2 $git-E<gt>log( [ @args ], [ $callback | $condvar )
+=head2 log
 
-In blocking mode works just like L<Git::Wrapper>.  With a code reference or condition variable it runs in
-blocking mode and the list of L<Git::Wrapper::Log> objects is returned via the condition variable.
+This method has three different calling modes, blocking, non-blocking as commits arrive and non-blocking
+processed at completion.
 
- # to get the whole log:
- $git->log(sub {
-   my @logs = shift->recv;
+=over 4
+
+=item blocking mode
+
+ $git->log(@args);
+
+Works exactly like L<Git::Wrapper>
+
+=item as commits arrive
+
+ # without a condition variable
+ $git->log(@args, sub {
+   # $commit isa Git::Wrapper::Log
+   my $commit;
+   ...
+ }, sub {
+   # called when complete
+   ...
  });
  
- # to get just the first line:
- $git->log('-1', sub {
-   my $log = shift->recv;
+ # with a condition variable
+ my $cv = AnyEvent->condvar;
+ $git->log(@args, sub {
+   # $commit isa Git::Wrapper::Log
+   my $commit;
+   ...
+  }, $cv); 
+  $cv->cb(
+    # called when complete
+    ...
+  });
+
+With this calling convention the first callback is called for each commit,as it arrives from git.
+The second callback, or condition variable is fired after the command has completed and all commits
+have been processed.
+
+=item at completion
+
+ # with a callback
+ $git->log(@args, sub {
+   # @log isa array of Git::Wrapper::Log
+   my @log = shift->recv;
  });
+ 
+ # with a condition variable
+ my $cv = AnyEvent->condvar;
+ $git->log(@args, $cv);
+ $cv->cb(
+   # @log isa array of Git::Wrapper::Log
+   my @log = shift->recv;
+ });
+
+With this calling convention the commits are processed by C<AnyEvent::Git::Wrapper> as they come
+in but they are gathered up and returned to the callback or condition variable at completion.
+
+=back
+
+In either non-blocking mode the condition variable for the completion of the command is returned,
+so you can pass in C<AE::cv> (or C<AnyEvent->condvar>) as the last argument and retrieve it like
+this:
+
+ my $cv = $git->log(@args, AE::cv);
 
 =cut
 
@@ -325,6 +406,12 @@ sub log
     return $self->SUPER::log(@_);
   }
   
+  my $cb;
+  if(ref($_[-1]) eq 'CODE')
+  {
+    $cb = pop;
+  }
+
   my $opt = ref $_[0] eq 'HASH' ? shift : {};
   $opt->{no_color}         = 1;
   $opt->{pretty}           = 'medium';
@@ -332,12 +419,13 @@ sub log
     if $self->supports_log_no_abbrev_commit;
   
   my $raw = defined $opt->{raw} && $opt->{raw};
+
+  my $out = [];
+  my @logs;
   
-  $self->RUN(log => $opt, @_, sub {
-    my $out = shift->recv;
-    
-    my @logs;
-    while(my $line = shift @$out) {
+  my $process_commit = sub {
+    if(my $line = shift @$out)
+    {
       unless($line =~ /^commit (\S+)/)
       {
         $cv->croak("unhandled: $line");
@@ -382,7 +470,25 @@ sub log
         $current->modifications(@modifications) if @modifications;
       }
       
-      push @logs, $current;
+      if($cb)
+      { $cb->($current) }
+      else
+      { push @logs, $current }
+    }
+  };
+  
+  my $on_stdout = sub {
+    my $line = pop;
+    push @$out, $line;
+    $process_commit->() if $line =~ /^commit (\S+)/ && @$out > 1;
+  };
+  
+  $self->RUN(log => $opt, @_, sub { on_stdout => $on_stdout }, sub {
+    eval { shift->recv };
+    $cv->croak($@) if $@;
+    
+    while($out->[0]) {
+      $process_commit->();
     }
     
     $cv->send(@logs);
@@ -391,10 +497,13 @@ sub log
   $cv;
 }
 
-=head2 $git-E<gt>version( [ $callback | $condvar ] )
+=head2 version
 
 In blocking mode works just like L<Git::Wrapper>.  With a code reference or condition variable it runs in
 blocking mode and the version is returned via the condition variable.
+
+ # blocking
+ my $version = $git->version;
 
  # cod ref
  $git->version(sub {
