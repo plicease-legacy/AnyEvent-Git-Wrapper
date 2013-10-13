@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 BEGIN { eval q{ use EV } }
-use Test::More tests => 23;
+use Test::More;
 
 use File::Temp qw(tempdir);
 use IO::File;
@@ -206,3 +206,4 @@ SKIP: {
     'passing content with -STDIN option';
 }
 
+done_testing;

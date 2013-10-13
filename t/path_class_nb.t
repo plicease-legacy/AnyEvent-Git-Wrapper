@@ -1,7 +1,7 @@
 use strict;
 use warnings;
 BEGIN { eval q{ use EV } }
-use Test::More tests => 3;
+use Test::More;
 
 use File::Temp qw(tempdir);
 use AnyEvent::Git::Wrapper;
@@ -70,3 +70,4 @@ $git->add($baz, AE::cv)->recv;
 
 ok(1);
 
+done_testing;

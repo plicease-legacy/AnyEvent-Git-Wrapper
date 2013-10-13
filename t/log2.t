@@ -1,14 +1,21 @@
 use strict;
 use warnings;
-use Test::More tests => 2;
+use Test::More;
 BEGIN { eval q{ use EV } }
 use AnyEvent;
 use AnyEvent::Git::Wrapper;
 use File::Temp qw( tempdir );
+use Sort::Versions;
 
 my $dir = tempdir( CLEANUP => 1 );
 
 my $git = AnyEvent::Git::Wrapper->new( $dir );
+
+my $version = $git->version(AE::cv)->recv;
+if ( versioncmp( $git->version(AE::cv)->recv , '1.5.0') eq -1 ) {
+  plan skip_all =>
+    "Git prior to v1.5.0 doesn't support 'config' subcmd which we need for this test."
+}
 
 $git->init; # 'git init' also added in v1.5.0 so we're safe
 
@@ -53,3 +60,4 @@ do {
   is_deeply \@log, \@expected;
 };
 
+done_testing;
