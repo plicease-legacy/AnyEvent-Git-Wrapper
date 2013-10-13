@@ -3,8 +3,10 @@ Revision history for {{$dist->name}}
 {{$NEXT}}
 
 0.05      2013-10-13 05:48:15 -0400
+  - fix tests to properly skip when git is old
 
 0.04      2013-09-27 09:32:04 -0400
+  - first CPAN release
 
 0.03      2013-09-17 12:49:09 -0400
   - fix Git::Wrapper prereq
