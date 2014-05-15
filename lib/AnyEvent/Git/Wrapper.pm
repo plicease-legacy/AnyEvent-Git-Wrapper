@@ -230,7 +230,7 @@ sub RUN
     
     my @cmd = ( $self->git, @$parts );
     
-    local $ENV{GIT_EDITOR} = $^O eq 'MSWin32' ? 'cmd /c ""' : '';
+    local $ENV{GIT_EDITOR} = $^O eq 'MSWin32' ? 'cmd /c "exit 2"' : '';
     $ipc->run(@cmd, \$in);
     
     undef $d;
