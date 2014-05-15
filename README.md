@@ -17,8 +17,8 @@ Wrap git command-line interface without blocking
 # DESCRIPTION
 
 This module provides a non-blocking and blocking API for git in the style and using the data 
-structures of [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper).  For methods that execute the git binary, if the last argument is 
-either a code reference or an [AnyEvent](http://search.cpan.org/perldoc?AnyEvent) condition variable, then the command is run in 
+structures of [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper).  For methods that execute the git binary, if the last argument is 
+either a code reference or an [AnyEvent](https://metacpan.org/pod/AnyEvent) condition variable, then the command is run in 
 non-blocking mode and the result will be sent to the condition variable when the command completes.  
 For most commands (all those but `status`, `log` and `version`), the result comes back via the 
 `recv` method on the condition variable as two array references, one representing the standard out 
@@ -43,7 +43,7 @@ called in scalar context, you can retrieve just the output by calling `recv` in 
       }
     });
 
-Like [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper), you can also access the standard output and error via the `OUT` and `ERR`, but care
+Like [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper), you can also access the standard output and error via the `OUT` and `ERR`, but care
 needs to be taken that you either save the values immediately if other commands are being run at the same
 time.
 
@@ -74,7 +74,7 @@ to `recv` in an eval if you want to handle it:
 
     my $git = AnyEvent::Git::Wrapper->new('.');
 
-The constructor takes all the same arguments as [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper), in addition to 
+The constructor takes all the same arguments as [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper), in addition to 
 these options:
 
 - cache\_version
@@ -88,10 +88,10 @@ these options:
 
 ## RUN
 
-Run the given git command with the given arguments (see [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper)).  If the last argument is
+Run the given git command with the given arguments (see [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper)).  If the last argument is
 either a code reference or a condition variable then the command will be run in non-blocking mode
 and a condition variable will be returned immediately.  Otherwise the command will be run in 
-normal blocking mode, exactly like [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper).
+normal blocking mode, exactly like [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper).
 
 If you provide this method with a condition variable it will use that to send the results of the
 command.  If you provide a code reference it will create its own condition variable and attach
@@ -116,7 +116,7 @@ the code reference  to its callback.  Either way it will return the condition va
 ## status
 
 If called in blocking mode (without a code reference or condition variable as the last argument),
-this method works exactly as with [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper).  If run in non blocking mode, the [Git::Wrapper::Statuses](http://search.cpan.org/perldoc?Git::Wrapper::Statuses)
+this method works exactly as with [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper).  If run in non blocking mode, the [Git::Wrapper::Statuses](https://metacpan.org/pod/Git::Wrapper::Statuses)
 object will be passed back via the `recv` method on the condition variable.
 
     # blocking
@@ -147,7 +147,7 @@ processed at completion.
 
         $git->log(@args);
 
-    Works exactly like [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper)
+    Works exactly like [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper)
 
 - as commits arrive
 
@@ -204,7 +204,7 @@ this:
 
 ## version
 
-In blocking mode works just like [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper).  With a code reference or condition variable it runs in
+In blocking mode works just like [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper).  With a code reference or condition variable it runs in
 blocking mode and the version is returned via the condition variable.
 
     # blocking
@@ -225,26 +225,26 @@ blocking mode and the version is returned via the condition variable.
 
 # CAVEATS
 
-This module necessarily uses the private \_parse\_args method from [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper), so changes
+This module necessarily uses the private \_parse\_args method from [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper), so changes
 to that module may break this one.  Also, some functionality is duplicated because there
 isn't a good way to hook into just parts of the commands that this module overrides.  The
 author has made a good faith attempt to reduce the amount of duplication.
 
 You probably don't want to be doing multiple git write operations at once (strange things are
 likely to happen), but you may want to do multiple git read operations or mix git and other
-[AnyEvent](http://search.cpan.org/perldoc?AnyEvent) operations at once.
+[AnyEvent](https://metacpan.org/pod/AnyEvent) operations at once.
 
 # BUNDLED FILES
 
-In addition to inheriting from [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper), this distribution includes tests that come
-with [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper), and are covered by this copyright:
+In addition to inheriting from [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper), this distribution includes tests that come
+with [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper), and are covered by this copyright:
 
 This software is copyright (c) 2008 by Hand Dieter Pearcey.
 
 This is free software you can redistribute it and/or modify it under the same terms as the Perl 5
 programming language system itself.
 
-Thanks also to Chris Prather and John SJ Anderson for their work on [Git::Wrapper](http://search.cpan.org/perldoc?Git::Wrapper).
+Thanks also to Chris Prather and John SJ Anderson for their work on [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper).
 
 # AUTHOR
 
