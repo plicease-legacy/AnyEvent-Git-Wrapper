@@ -143,6 +143,9 @@ SKIP: {
     if ( versioncmp( $git->version , '1.7.0.5') eq -1 ) {
       skip 'testing old git without commit --allow-empty-message support' , 1;
     }
+    if ( $^O eq "MSWin32" ) {
+      skip 'testing with timeout on Windows is unreliable', 1;
+    }
 
     # Test empty commit message
     IO::File->new(">" . File::Spec->catfile($dir, qw(second_commit)))->print("second_commit\n");

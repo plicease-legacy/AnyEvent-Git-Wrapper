@@ -231,7 +231,7 @@ sub RUN
     
     my @cmd = ( $self->git, @$parts );
     
-    local $ENV{GIT_EDITOR} = '';
+    local $ENV{GIT_EDITOR} = $^O eq 'MSWin32' ? 'cmd /c ""' : '';
     $ipc->run(@cmd);
   };
   
