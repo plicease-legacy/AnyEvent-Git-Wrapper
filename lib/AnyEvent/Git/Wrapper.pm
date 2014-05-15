@@ -187,7 +187,6 @@ sub RUN
   my @err;
 
   my $ipc = AnyEvent::Open3::Simple->new(
-    stdin => $in,
     on_stdout => \@out,
     on_stderr => \@err,
     on_error  => sub {
@@ -232,7 +231,7 @@ sub RUN
     my @cmd = ( $self->git, @$parts );
     
     local $ENV{GIT_EDITOR} = $^O eq 'MSWin32' ? 'cmd /c ""' : '';
-    $ipc->run(@cmd);
+    $ipc->run(@cmd, \$in);
   };
   
   $cv;
