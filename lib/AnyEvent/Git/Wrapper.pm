@@ -190,7 +190,7 @@ sub RUN
     on_stdout => \@out,
     on_stderr => \@err,
     on_error  => sub {
-      my($error) = @_;
+      #my($error) = @_;
       $cv->croak(
         Git::Wrapper::Exception->new(
           output => \@out,
@@ -200,7 +200,7 @@ sub RUN
       );
     },
     on_exit   => sub {
-      my($proc, $exit, $signal) = @_;
+      my(undef, $exit, $signal) = @_;
       
       # borrowed from superclass, see comment there
       my $stupid_status = $cmd eq 'status' && @out && ! @err;
@@ -232,6 +232,8 @@ sub RUN
     
     local $ENV{GIT_EDITOR} = $^O eq 'MSWin32' ? 'cmd /c ""' : '';
     $ipc->run(@cmd, \$in);
+    
+    undef $d;
   };
   
   $cv;
