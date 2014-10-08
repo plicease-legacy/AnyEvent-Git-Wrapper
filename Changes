@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+  - fix for Strawberry Perl 5.20
 
 0.06      2014-05-15 08:40:54 -0400
   - MSWin32 compat (prereq Git::Wrapper still unreliable with MSWin32)

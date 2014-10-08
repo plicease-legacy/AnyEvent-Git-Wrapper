@@ -1,6 +1,6 @@
 use strict;
 use warnings;
-BEGIN { eval q{ use EV } }
+BEGIN { $^O eq 'MSWin32' ? eval q{ use Event; 1 } || q{ use EV } : eval q{ use EV } }
 use Test::More tests => 2;
 use AnyEvent::Git::Wrapper;
 use File::Temp qw( tempdir );
