@@ -1,4 +1,5 @@
 language: perl
+sudo: false
 install:
   - cpanm -n Git::Wrapper
   - cpanm -n AnyEvent::Open3::Simple
