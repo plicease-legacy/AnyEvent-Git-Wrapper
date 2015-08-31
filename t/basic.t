@@ -74,6 +74,8 @@ my $log = $log[0];
 is($log->id, (split /\s/, $rev_list[0])[0], 'id');
 is($log->message, "FIRST\n\n\tBODY\n", "message");
 
+throws_ok { $git->log( "--format=%H" ) } q{Git::Wrapper::Exception};
+
 SKIP: {
   skip 'testing old git without raw date support' , 1
     unless $git->supports_log_raw_dates;
@@ -119,7 +121,7 @@ SKIP: {
 
   my $raw_log = $raw_log[0];
   my $excepted_mod = Git::Wrapper::File::RawModification->new(
-    "foo/bar","A",'000000','100644','0000000',"ce01362"
+    "foo/bar","A",'000000','100644','0000000000000000000000000000000000000000','ce013625030ba8dba906f756967f9e9ca394464a'
   );
   is_deeply($raw_log->modifications, $excepted_mod);
 }
@@ -138,6 +140,8 @@ sub _timeout (&) {
 
     return $timeout;
 }
+
+my $commit_count = 1;
 
 SKIP: {
     if ( versioncmp( $git->version , '1.7.0.5') eq -1 ) {
@@ -167,8 +171,11 @@ SKIP: {
 
     @log = $git->log();
     is(@log, 2, 'two log entries, one with empty commit message');
+    $commit_count++;
 };
 
+my @out = $git->RUN('log','--format=%H');
+ok scalar @out == $commit_count, q{using RUN('log','--format=%H') to get all 2 commit SHAs};
 
 # test --message vs. -m
 my @arg_tests = (
