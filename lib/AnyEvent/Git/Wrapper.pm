@@ -568,6 +568,9 @@ sub version
 
 =head1 CAVEATS
 
+L<AnyEvent> (a dependency of this module) is no longer supported on Perl 5.22
+or later by its author.  It may work there, or it may not.
+
 This module necessarily uses the private _parse_args method from L<Git::Wrapper>, so changes
 to that module may break this one.  Also, some functionality is duplicated because there
 isn't a good way to hook into just parts of the commands that this module overrides.  The
