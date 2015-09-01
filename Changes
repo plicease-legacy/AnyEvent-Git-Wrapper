@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+  - bump minimum required Git::Wrapper to 0.045
 
 0.08      2015-08-31 09:26:44 -0400
   - fix for Git::Wrapper 0.045 (changes to tests only)
