@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.09      2015-08-31 21:58:24 -0400
   - bump minimum required Git::Wrapper to 0.045
 
 0.08      2015-08-31 09:26:44 -0400
