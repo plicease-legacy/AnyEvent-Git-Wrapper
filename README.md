@@ -251,7 +251,7 @@ Thanks also to Chris Prather and John SJ Anderson for their work on [Git::Wrappe
 
 # AUTHOR
 
-Graham Ollis <plicease@cpan.org>
+Graham Ollis &lt;plicease@cpan.org>
 
 # COPYRIGHT AND LICENSE
 
