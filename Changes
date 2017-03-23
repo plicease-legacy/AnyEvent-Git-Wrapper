@@ -1,6 +1,7 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+  - more resiliant in the face of white space
 
 0.09      2015-08-31 21:58:24 -0400
   - bump minimum required Git::Wrapper to 0.045
