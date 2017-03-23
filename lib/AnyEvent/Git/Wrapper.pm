@@ -29,6 +29,8 @@ use Scalar::Util qw( blessed );
 
 =head1 DESCRIPTION
 
+B<DEPRECATED>: May go away at some point.
+
 This module provides a non-blocking and blocking API for git in the style and using the data 
 structures of L<Git::Wrapper>.  For methods that execute the git binary, if the last argument is 
 either a code reference or an L<AnyEvent> condition variable, then the command is run in 
