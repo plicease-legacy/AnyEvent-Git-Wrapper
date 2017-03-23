@@ -16,6 +16,8 @@ Wrap git command-line interface without blocking
 
 # DESCRIPTION
 
+**DEPRECATED**: May go away at some point.
+
 This module provides a non-blocking and blocking API for git in the style and using the data 
 structures of [Git::Wrapper](https://metacpan.org/pod/Git::Wrapper).  For methods that execute the git binary, if the last argument is 
 either a code reference or an [AnyEvent](https://metacpan.org/pod/AnyEvent) condition variable, then the command is run in 

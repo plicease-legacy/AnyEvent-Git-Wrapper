@@ -1,6 +1,8 @@
 Revision history for {{$dist->name}}
 
 {{$NEXT}}
+
+0.10      2017-03-23 06:27:22 -0400
   - more resiliant in the face of white space
 
 0.09      2015-08-31 21:58:24 -0400
